@@ -1,0 +1,314 @@
+import 'dart:ui';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // double _sheetTopPadding = 300;
+  double _expansionProgress = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // CustomAppBar(title: "test"),
+          _buildHeader(),
+          _buildCreditCard(),
+          _buildExpandableList(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 48, left: 24, right: 24, bottom: 24),
+      // padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 20,
+                    backgroundImage: AssetImage('assets/images/avatar.png'),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Welcome Back,",
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        "Tawfikul Emon",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Icon(Icons.dashboard_customize_outlined),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditCard() {
+    return Positioned(
+      top: 130,
+      left: 20,
+      right: 20,
+      child: Column(
+        children: [
+          const Text(
+            "Your Balance Is",
+            style: TextStyle(color: Colors.purpleAccent),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "\$ 45,934.00",
+            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text("Today 14 Sep 2022"),
+          const SizedBox(height: 20),
+          Container(
+            height: 150,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF232526), Color(0xFF414345)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 16,
+                  top: 16,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "L i f e  S t y l e",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  top: 16,
+                  child: const Text(
+                    "EURO",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 120,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(40),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "USD",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandableList(BuildContext context) {
+    double blurStrength = lerpDouble(10.0, 0.0, _expansionProgress)!;
+    // print("blurStrength: $blurStrength");
+
+    return NotificationListener<DraggableScrollableNotification>(
+      onNotification: (notification) {
+        // print("notification.extent: ${notification.extent}");
+        setState(() {
+          _expansionProgress = (min(notification.extent, 0.70) - 0.35) / 0.35;
+        });
+        return true;
+      },
+      child: DraggableScrollableSheet(
+        initialChildSize: 0.35,
+        minChildSize: 0.35,
+        maxChildSize: 0.85,
+        builder: (context, scrollController) {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withValues(alpha: 0.7),
+                  Colors.white.withValues(alpha: 1.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              backgroundBlendMode: BlendMode.overlay,
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(32),
+              ),
+              child: BackdropFilter(
+                // filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                filter: ImageFilter.blur(
+                  sigmaX: blurStrength,
+                  sigmaY: blurStrength,
+                ),
+                child: Container(
+                  color: Colors.white.withValues(
+                    alpha: lerpDouble(0.3, 1.0, _expansionProgress)!,
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
+                    ),
+                    children: [
+                      const Text(
+                        "Transactions",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTransactionItem(
+                        "Netflix",
+                        "Sep 12, 2022",
+                        "- \$126.00",
+                        "09:31 AM",
+                        Icons.video_library,
+                      ),
+                      _buildTransactionItem(
+                        "Apple",
+                        "Sep 22, 2022",
+                        "- \$170.00",
+                        "09:31 AM",
+                        Icons.apple,
+                      ),
+                      _buildTransactionItem(
+                        "Instagram",
+                        "Sep 18, 2022",
+                        "- \$46.00",
+                        "09:31 AM",
+                        Icons.camera_alt,
+                      ),
+                      const SizedBox(height: 30),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTransactionItem(
+    String title,
+    String date,
+    String amount,
+    String time,
+    IconData icon,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: Colors.grey.shade200,
+            child: Icon(icon, color: Colors.black54),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  date,
+                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                amount,
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                time,
+                style: const TextStyle(color: Colors.black54, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
