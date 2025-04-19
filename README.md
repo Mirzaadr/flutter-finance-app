@@ -1,6 +1,15 @@
 # Finance App
 
-A prototype financial application build using flutter.
+A prototype financial application build using flutter. The application does not need internet connection, i use mock data to simulate data fetching.
+
+## Demo
+![Demo App](./assets/gif/demo.gif)
+
+## Release
+There are already a released version available to download [here](https://github.com/Mirzaadr/flutter-finance-app/releases/tag/v1.0.0)
+1. download ```app-release.zip```
+2. extract ```app-release.apk``` and install to android device
+3. run the app
 
 ## Getting Started
 
