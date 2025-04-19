@@ -1,7 +1,14 @@
 import 'dart:ui';
 
+import 'package:finance_app/core/utils/currency_format.dart';
+import 'package:finance_app/core/utils/date_format.dart';
+import 'package:finance_app/views/home/widgets/credit_card_item.dart';
+import 'package:finance_app/views/home/widgets/transaction_item.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import './home_view_model.dart';
+import '../../services/home_services.dart';
+import '../../models/home/transaction_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,13 +19,50 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   double blurValue = 10;
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<double> blurNotifier = ValueNotifier<double>(10.0);
+  final ValueNotifier<double> opacityNotifier = ValueNotifier<double>(0.3);
+
+  final HomeViewModel viewModel = HomeViewModel(MockHomeRepository());
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController.addListener(() {
+      final extent =
+          _scrollController.offset /
+          _scrollController.position.maxScrollExtent *
+          2.0;
+      final calculatedBlur = lerpDouble(10, 0, extent)!;
+      final calculatedOpacity = lerpDouble(0.3, 1.0, extent)!;
+
+      if ((calculatedBlur - blurNotifier.value).abs() > 0.5) {
+        blurNotifier.value = calculatedBlur;
+      }
+
+      if ((calculatedOpacity - opacityNotifier.value).abs() > 0.02) {
+        opacityNotifier.value = calculatedOpacity;
+      }
+    });
+
+    viewModel.loadData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    blurNotifier.dispose();
+    opacityNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Color(0xFFF8F8F8),
+        backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 60,
         scrolledUnderElevation: 0,
@@ -54,28 +98,29 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Stack(
+      body: AnimatedBuilder(
+        animation: viewModel,
+        builder: (context, _) {
+          if (viewModel.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return Stack(
         children: [
           Column(
             children: [
               const SizedBox(height: 16),
-              _buildCardSection(),
+                  _buildCardSection(
+                    viewModel.totalBalance,
+                    viewModel.currentDate,
+                  ),
               const SizedBox(height: 16),
             ],
           ),
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              // if (notification.metrics.axis == Axis.vertical) {
-              //   final offset = notification.metrics.pixels;
-              //   setState(() {
-              //     blurValue =
-              //         offset <= 0 ? 10 : (10 - (offset / 10)).clamp(0, 10);
-              //   });
-              // }
-              // print(notification.metrics.pixels);
-              return true;
-            },
-            child: CustomScrollView(
+              ValueListenableBuilder<double>(
+                valueListenable: blurNotifier,
+                builder: (context, blurValue, _) {
+                  return CustomScrollView(
+                    controller: _scrollController,
               slivers: [
                 SliverToBoxAdapter(
                   child: SizedBox(height: 350), // Space for AppBar + Card
@@ -91,7 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white.withValues(
+                                    alpha: opacityNotifier.value,
+                                  ),
                             borderRadius: BorderRadius.only(
                               topLeft: Radius.circular(20),
                               topRight: Radius.circular(20),
@@ -119,132 +166,91 @@ class _HomeScreenState extends State<HomeScreen> {
                         sigmaY: blurValue,
                       ),
                       child: Container(
-                        color: Colors.white.withValues(alpha: 0.7),
+                              color: Colors.white.withValues(
+                                alpha: opacityNotifier.value,
+                              ),
                         constraints: BoxConstraints(
                           minHeight: MediaQuery.sizeOf(context).height - 210,
                         ),
                         child: ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: 3,
+                                itemCount: viewModel.transactions.length,
                           itemBuilder:
-                              (context, index) => _buildTransactionItem(index),
+                                    (context, index) => _buildTransactionItem(
+                                      index,
+                                      viewModel.transactions,
+                                    ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+                    ],
+                  );
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildCardSection() {
+  Widget _buildCardSection(double totalBalance, DateTime currentDate) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
         children: [
           const Text(
             "Your Balance Is",
-            style: TextStyle(color: Colors.purpleAccent),
+            style: TextStyle(color: Colors.purpleAccent, fontSize: 14),
           ),
           const SizedBox(height: 8),
-          const Text(
-            "\$ 45,934.00",
+          Text(
+            "\$ ${formatCurrency(totalBalance)}",
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          const Text("Today 14 Sep 2022"),
+          Text("Today ${formatDate(currentDate)}"),
           const SizedBox(height: 20),
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: Container(
-              height: 150,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF232526), Color(0xFF414345)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              CreditCardItem(),
+              Positioned(
+                top: 50,
+                left: 0,
+                right: 0,
+                child: CreditCardItem(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8ec5fc), Color(0xFFe0c3fc)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  leftText: "M a s t e r",
+                  rightText: "USD",
                 ),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 16,
-                    top: 16,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          "L i f e  S t y l e",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    top: 16,
-                    child: const Text(
-                      "EURO",
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ),
-                  // Center(
-                  //   child: Container(
-                  //     width: 120,
-                  //     height: 60,
-                  //     decoration: BoxDecoration(
-                  //       borderRadius: BorderRadius.circular(40),
-                  //       gradient: const LinearGradient(
-                  //         colors: [Color(0xFFe0c3fc), Color(0xFF8ec5fc)],
-                  //         begin: Alignment.topLeft,
-                  //         end: Alignment.bottomRight,
-                  //       ),
-                  //     ),
-                  //     child: const Center(
-                  //       child: Text(
-                  //         "USD",
-                  //         style: TextStyle(
-                  //           color: Colors.white,
-                  //           fontWeight: FontWeight.bold,
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ),
-                  // ),
-                ],
-              ),
-            ),
+            ],
           ),
+          
         ],
       ),
     );
   }
 
-  Widget _buildTransactionItem(int index) {
-    final items = [
-      {'title': 'Netflix', 'amount': '-\$126.00'},
-      {'title': 'Apple', 'amount': '-\$170.00'},
-      {'title': 'Instagram', 'amount': '-\$46.00'},
-    ];
-    final item = items[index % items.length];
+  Widget _buildTransactionItem(int index, List<Transaction> transactions) {
+    final item = transactions[index];
 
-    return ListTile(
-      leading: const CircleAvatar(backgroundColor: Colors.grey),
-      title: Text(item['title']!),
-      subtitle: const Text('Sep 12, 2022  •  09:31 AM'),
-      trailing: Text(
-        item['amount']!,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
+    return TransactionItem(
+      logo: Icons.apple,
+      title: item.title,
+      amount: item.amount,
+      date: formatDateMDY(item.date),
     );
   }
 }

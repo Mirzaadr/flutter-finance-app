@@ -1,14 +1,15 @@
 import 'package:finance_app/core/utils/currency_format.dart';
+import 'package:finance_app/core/utils/date_format.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class TransactionItem extends StatelessWidget {
+class HistoryItem extends StatelessWidget {
   final IconData logo;
   final String title;
   final double amount;
-  final String date;
+  final DateTime date;
 
-  const TransactionItem({
+  const HistoryItem({
     super.key,
     required this.logo,
     required this.title,
@@ -28,7 +29,7 @@ class TransactionItem extends StatelessWidget {
         style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        date,
+        formatDateMDY(date),
         style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey),
       ),
       trailing: Column(
@@ -43,8 +44,8 @@ class TransactionItem extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            "09:31 AM",
+          Text(
+            formatTime(date),
             style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
